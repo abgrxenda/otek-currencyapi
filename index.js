@@ -54,15 +54,27 @@ app.get("/:FROM/:TO/:AMT", (req, res) => {
       const $ = cheerio.load(html);
       const ratef = $("body")
         .find(
-          "div#__next div.\\[grid-area\\:conversion\\][data-testid=conversion] > div:nth-child(1) > p:nth-child(2)"
+          "p.text-xe-neutral-900:nth-child(1) > span:nth-child(1)"
         )
-        .text();
-      res.json(ratef.substring(0, ratef.indexOf(" ")));
-      // res.end();
-    });
+        .text().replace("1.00 " + FromReq + " = ","").replace(" " + ToReq, "");
+        // .find(
+        //   "fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)"
+        // )
+      // const ratef = $("body")
+      //   .find(
+      //     "div#__next div.\\[grid-area\\:conversion\\][data-testid=conversion] > div:nth-child(1) > p:nth-child(2)"
+      //   )
+      //   .text();
+      res.json(ratef);
+      // res.json(ratef.substring(0, ratef.indexOf(" ")));
+      // res.end();fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)
+    })
+    .catch((error) => {
+    console.error('XE fetch error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch exchange rate' });
+  });
 });
 
-const historyTable = [];
 app.options("/hist/:CURR/:YEAR/:MONTH/:DAY", cors(corsOptions), (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "*");
@@ -70,6 +82,7 @@ app.options("/hist/:CURR/:YEAR/:MONTH/:DAY", cors(corsOptions), (req, res) => {
   // res.end();
 });
 app.get("/hist/:CURR/:YEAR/:MONTH/:DAY", (req, res) => {
+  const historyTable = [];
   //   res.json(req.params);
   const CurrReq = req.params.CURR;
   const DateReq = req.params.YEAR + "-" + req.params.MONTH + "-" + req.params.DAY;
@@ -108,3 +121,12 @@ app.get("/hist/:CURR/:YEAR/:MONTH/:DAY", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`server running on PORT ${PORT}`));
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received: Closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
+});
