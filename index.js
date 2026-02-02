@@ -56,7 +56,7 @@ app.get("/:FROM/:TO/:AMT", (req, res) => {
         .find(
           "p.text-xe-neutral-900:nth-child(1) > span:nth-child(1)"
         )
-        .text().replace("1.00 " + FromReq + " = ","").replace(" " + ToReq, "");
+        .text().replace("1.00 " + FromReq + " = ","").replace(" " + ToReq, "").replace(",","");
         // .find(
         //   "fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)"
         // )
@@ -65,7 +65,7 @@ app.get("/:FROM/:TO/:AMT", (req, res) => {
       //     "div#__next div.\\[grid-area\\:conversion\\][data-testid=conversion] > div:nth-child(1) > p:nth-child(2)"
       //   )
       //   .text();
-      res.json(ratef);
+      res.json((parseFloat(ratef) * parseFloat(AmtReq)));
       // res.json(ratef.substring(0, ratef.indexOf(" ")));
       // res.end();fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)
     })
