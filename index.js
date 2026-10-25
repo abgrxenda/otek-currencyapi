@@ -48,15 +48,21 @@ app.get("/:FROM/:TO/:AMT", (req, res) => {
 
   // res.json(xe[0].address + xe[0].from + FromReq + xe[0].to + ToReq);
   axios
-    .get(xe[0].address + AmtReq + xe[0].from + FromReq + xe[0].to + ToReq)
+    .get(xe[0].address + AmtReq + xe[0].from + FromReq + xe[0].to + ToReq, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    })
     .then((response) => {
       const html = response.data;
       const $ = cheerio.load(html);
-      const ratef = $("body")
-        .find(
-          "p.text-xe-neutral-900:nth-child(1) > span:nth-child(1)"
-        )
-        .text().replace("1.00 " + FromReq + " = ","").replace(" " + ToReq, "").replace(",","");
+      // Rate line looks like "1.00 USD = 0.89260095 EUR"; match on text, not on layout classes
+      const rateRe = new RegExp("1(?:\\.0+)?\\s*" + FromReq + "\\s*=\\s*([\\d.,]+)\\s*" + ToReq, "i");
+      const rateMatch = $("body").text().match(rateRe);
+      const rateText = rateMatch ? rateMatch[0] : "";
+      const ratef = rateMatch ? rateMatch[1].replace(/,/g, "") : "";
         // .find(
         //   "fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)"
         // )
@@ -65,6 +71,15 @@ app.get("/:FROM/:TO/:AMT", (req, res) => {
       //     "div#__next div.\\[grid-area\\:conversion\\][data-testid=conversion] > div:nth-child(1) > p:nth-child(2)"
       //   )
       //   .text();
+      if (isNaN(parseFloat(ratef))) {
+        console.error(
+          "XE parse error: rate not found. status:", response.status,
+          "title:", JSON.stringify($("title").text()),
+          "bytes:", String(html).length,
+          "snippet:", JSON.stringify($("body").text().replace(/\s+/g, " ").slice(0, 300))
+        );
+        return res.status(502).json({ error: "Could not parse exchange rate" });
+      }
       res.json((parseFloat(ratef) * parseFloat(AmtReq)));
       // res.json(ratef.substring(0, ratef.indexOf(" ")));
       // res.end();fieldset.rounded-lg:nth-child(3) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > input:nth-child(1)
@@ -120,7 +135,10 @@ app.get("/hist/:CURR/:YEAR/:MONTH/:DAY", (req, res) => {
   // res.json(xeh[0].address + CurrReq + xeh[0].date + DateReq);
 });
 
-app.listen(PORT, () => console.log(`server running on PORT ${PORT}`));
+// ✅ Bind to localhost only (never 0.0.0.0)
+app.listen(PORT, '127.0.0.1', () => {
+    console.log(`Currency API running on http://127.0.0.1:${PORT}`);
+});
 
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
